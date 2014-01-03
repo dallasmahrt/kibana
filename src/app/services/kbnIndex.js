@@ -15,11 +15,14 @@ function (angular, _, config, moment) {
     this.indices = function(from,to,pattern,interval) {
       var possible = [];
       _.each(expand_range(fake_utc(from),fake_utc(to),interval),function(d){
-        possible.push(d.format(pattern));
+        possible.push(d.format(regex_from_pattern(pattern)));
       });
-
       return all_indices().then(function(p) {
-        var indices = _.intersection(possible,p);
+        var indices = _.filter(p, function(index) {
+          return _.some(possible, function(pattern) {
+            return index.match(pattern);
+          });
+        });
         indices.reverse();
         return indices;
       });
@@ -96,6 +99,19 @@ function (angular, _, config, moment) {
         return false;
       }
     }
+
+    // Transform an index pattern into a regular expression for matching against indices
+    function regex_from_pattern(pattern) {
+      // If only there was a replaceAll()...
+      var replaceStarRe = new RegExp("\\*", "g");
+      var replaceDotRe = new RegExp("\\.", "g");
+      var regexFromPattern = pattern;
+      regexFromPattern = regexFromPattern.replace(replaceDotRe, "\\.");
+      regexFromPattern = regexFromPattern.replace(replaceStarRe, ".*");
+      
+      return regexFromPattern;
+    }
+
   });
 
 });
